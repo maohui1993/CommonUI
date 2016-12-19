@@ -7,10 +7,12 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 /**
  * Created by Hooyee on 2016/12/16.
@@ -20,27 +22,22 @@ import android.widget.ImageView;
 public class PhotoHandle extends ImageView implements View.OnTouchListener {
 
     static final int DOUBLE_CLICK_TIME_SPACE = 300; // 双击时间间隔
-    static final float MAX_SCALA = 1.5f;
-    static final float TOLERANCE = 0.5f;
 
+    private Matrix mOriginalMatrix;
     private Matrix mCurrentMatrix;
     private Matrix mMatrix;
 
     private float mStartY;
     private float mStartX;
-    private float mMaxMoveRecordX;     // 记录最大的移动值，不做改变
-    private float mMaxMoveRecordY;     // 记录最大的移动值，不做改变
-    private float mMaxMoveValueY;
-    private float mMaxMoveValueX;
-    private float mMaxUpMoveValue;    // up or left
-    private float mMaxDownMoveValue;  // down or right
-    private float mCurrentScala = 1f;      // 当前放大倍数
-
-    // 0代表水平，1代表垂直，-1不能滑动
-    private int mOrientation;
     private long mLastTime;           // 第一次触摸屏幕的时间
 
-    private Bitmap mBitmap;
+    private Bitmap mBitmap;          // 记录Image的图片资源bitmap
+    private RectF mBitmapRectF;
+    private RectF mViewBoundRectF;
+    private RectF mOriginalBitmapRectF;
+
+    private float dX;
+    private float dY;
 
     public PhotoHandle(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -48,6 +45,7 @@ public class PhotoHandle extends ImageView implements View.OnTouchListener {
         mMatrix = new Matrix();
         setOnTouchListener(this);
         initType();
+
     }
 
     private void initType() {
@@ -59,52 +57,47 @@ public class PhotoHandle extends ImageView implements View.OnTouchListener {
         super.onWindowFocusChanged(hasFocus);
         // 在onCreate中获取宽度
         if (hasFocus) {
-            Bitmap bitmap = zoomBitmap(mBitmap, getWidth());
-            render(bitmap);
+            mBitmap = zoomBitmap(mBitmap, getWidth());
+            mViewBoundRectF  = new RectF(0, 0, getWidth(), getHeight());
+            mBitmapRectF = new RectF(0, 0, mBitmap.getWidth(), mBitmap.getHeight());
+            init(mBitmap);
         }
     }
-
-    float w;
-    float h;
 
     @Override
     public void setImageBitmap(Bitmap bm) {
         super.setImageBitmap(bm);
         mBitmap = bm;
-        w = bm.getWidth();
-        h = bm.getHeight();
     }
 
-    public void render(Bitmap bmp) {
-        setImageBitmap(bmp);
+    public void init(Bitmap bmp) {
+        // bitmap修改符合view宽高之后重新设置为图片
+        setImageBitmap(mBitmap);
+
         float width = bmp.getWidth();
         float height = bmp.getHeight();
-        float maxMoveValue;
 
-        float dx = 0;
-        float dy = 0;
-        // 0代表水平，1代表垂直
-        int orientation = 0;
-        if (width < height) {
-            maxMoveValue = (height - getHeight()) / 2;
-            orientation = 1;
-            dy = -maxMoveValue;
-        } else if (width > height) {
-            maxMoveValue = (width - getWidth()) / 2;
-            orientation = 0;
-            dx = -maxMoveValue;
-        } else {
-            maxMoveValue = 0;
-            orientation = -1;
-        }
-        setOrientation(orientation);
-        setMaxMoveValue(maxMoveValue);
+        float dx = -(width - getWidth()) / 2;
+        float dy = -(height - getHeight()) / 2;
 
+        // 初始化bitmap的位置
         Matrix matrix = getImageMatrix();
         matrix.postTranslate(dx, dy);
+        matrix.mapRect(mBitmapRectF);
         setImageMatrix(matrix);
+
+        // 初始化边界矩阵
+        mOriginalBitmapRectF = new RectF(mBitmapRectF);
+        mOriginalMatrix = new Matrix();
+        mOriginalMatrix.set(matrix);
     }
 
+    /**
+     * 将宽或者高缩放成view的宽高
+     * @param bmp
+     * @param measurement
+     * @return
+     */
     private Bitmap zoomBitmap(Bitmap bmp, float measurement) {
 
         int bmpWidth = bmp.getWidth();
@@ -118,27 +111,9 @@ public class PhotoHandle extends ImageView implements View.OnTouchListener {
         return result;
     }
 
-    public void setOrientation(int orientation) {
-        mOrientation = orientation;
-    }
-
-    public void setMaxMoveValue(float maxMoveValue) {
-        if (mOrientation == 1) {
-            mMaxMoveRecordY = maxMoveValue;
-            mMaxMoveValueY = maxMoveValue;
-            mMaxUpMoveValue = maxMoveValue;
-            mMaxDownMoveValue = maxMoveValue;
-        } else if (mOrientation == 0) {
-            mMaxMoveRecordX = maxMoveValue;
-            mMaxMoveValueX = maxMoveValue;
-            mMaxLeftMoveValue = maxMoveValue;
-            mMaxRightMoveValue = maxMoveValue;
-        }
-    }
-
     //    EXACTLY：一般是设置了明确的值或者是MATCH_PARENT
-//    AT_MOST：表示子布局限制在一个最大值内，一般为WARP_CONTENT
-//    UNSPECIFIED：表示子布局想要多大就多大，很少使用
+    //    AT_MOST：表示子布局限制在一个最大值内，一般为WARP_CONTENT
+    //    UNSPECIFIED：表示子布局想要多大就多大，很少使用
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
@@ -197,10 +172,6 @@ public class PhotoHandle extends ImageView implements View.OnTouchListener {
     @Override
     public boolean onTouch(View v, MotionEvent event) {
 
-        if (mOrientation == -1) {
-            return true;
-        }
-
         switch (event.getAction() & 0xff) {
             // 一次滑动只会出发一次ACTION_DOWN
             case MotionEvent.ACTION_DOWN:
@@ -214,58 +185,39 @@ public class PhotoHandle extends ImageView implements View.OnTouchListener {
                 touchUp(event);
                 break;
         }
-
-        //   image.setImageMatrix(mMatrix);
         return true;
     }
 
     private void touchUp(MotionEvent event) {
-        float changeValueX = event.getX() - mStartX;
-        float changeValueY = event.getY() - mStartY;
-
-        if (changeValueY > -mMaxUpMoveValue && changeValueY < mMaxDownMoveValue) {
-            mMaxDownMoveValue -= changeValueY;
-            mMaxUpMoveValue += changeValueY;
-        } else if (changeValueY < -mMaxUpMoveValue) {
-            mMaxDownMoveValue = 2 * mMaxMoveValueY;
-            mMaxUpMoveValue = 0;
-        } else if (changeValueY > mMaxDownMoveValue) {
-            mMaxDownMoveValue = 0;
-            mMaxUpMoveValue = 2 * mMaxMoveValueY;
-        }
-        if (changeValueX > -mMaxLeftMoveValue && changeValueX < mMaxRightMoveValue) {
-            mMaxRightMoveValue -= changeValueX;
-            mMaxLeftMoveValue += changeValueX;
-        } else if (changeValueX < -mMaxLeftMoveValue) {
-            mMaxRightMoveValue = 2 * mMaxMoveValueX;     //
-            mMaxLeftMoveValue = 0;
-        } else if (changeValueX > mMaxRightMoveValue) {
-            mMaxRightMoveValue = 0;
-            mMaxLeftMoveValue = 2 * mMaxMoveValueX;    //
-        }
+        mMatrix.reset();
+        mMatrix.postTranslate(dX, dY);
+        mMatrix.mapRect(mBitmapRectF);
+        dX = 0;
+        dY = 0;
     }
 
-    float mMaxLeftMoveValue = 0;
-    float mMaxRightMoveValue = 0;
-
     private void touchMove(MotionEvent event) {
-        float moveAmountY = event.getY() - mStartY;
-        float moveAmountX = event.getX() - mStartX;
+        // 手指一次滑动会触发多次move事件：
+        // 例如从x移动100，可能会多次触发：x = [10,15,29,50````100]等一组数据
+        // 但是dY 确实以down时的数据为基准的  因此，一次滑动dY = 10+15+29+50+100；dy会出现前述的一组数据，因此实际的dy就被放大了,故mBitmapRectF不能在此处操作。
+        dY = event.getY() - mStartY;
+        dX = event.getX() - mStartX;
 
-        if (moveAmountY < -mMaxUpMoveValue) {
-            moveAmountY = -mMaxUpMoveValue;
-        } else if (moveAmountY > mMaxDownMoveValue) {
-            moveAmountY = mMaxDownMoveValue;
+        if (mBitmapRectF.left + dX > mViewBoundRectF.left) {
+            dX = mViewBoundRectF.left - mBitmapRectF.left;
         }
-
-        if (moveAmountX < -mMaxLeftMoveValue) {
-            moveAmountX = -mMaxLeftMoveValue;
-        } else if (moveAmountX > mMaxRightMoveValue) {
-            moveAmountX = mMaxRightMoveValue;
+        if (mBitmapRectF.right + dX < mViewBoundRectF.right) {
+            dX = mViewBoundRectF.right - mBitmapRectF.right;
+        }
+        if (mBitmapRectF.top + dY > mViewBoundRectF.top) {
+            dY = mViewBoundRectF.top - mBitmapRectF.top;
+        }
+        if (mBitmapRectF.bottom + dY < mViewBoundRectF.bottom) {
+            dY = mViewBoundRectF.bottom - mBitmapRectF.bottom;
         }
 
         mMatrix.set(mCurrentMatrix);
-        mMatrix.postTranslate(moveAmountX, moveAmountY);
+        mMatrix.postTranslate(dX, dY);
         setImageMatrix(mMatrix);
     }
 
@@ -281,45 +233,34 @@ public class PhotoHandle extends ImageView implements View.OnTouchListener {
         mLastTime = event.getEventTime();
     }
 
+    private int mCurrentCount;
+    // 每次执行放大操作时，放大的比例
+    public static float SCALA = 1.5f;
+
     private void changeSize(float x, float y) {
-        Matrix matrix = new Matrix();
-        //    matrix.set(getImageMatrix());
-        mCurrentScala += TOLERANCE;
-        if (mCurrentScala > MAX_SCALA) {
-            matrix.reset();
-            mCurrentScala = 1;
+        Toast.makeText(getContext(), "down", Toast.LENGTH_SHORT).show();
+        mMatrix.set(mCurrentMatrix);
+        mCurrentCount++;
+        if (mCurrentCount == 3) {
+            mCurrentCount = 0;
+            setImageMatrix(mOriginalMatrix);
+            mBitmapRectF.set(mOriginalBitmapRectF);
+        } else {
+            float dx = - x * (SCALA - 1);
+            float dy = - y * (SCALA - 1);
+
+            mMatrix.postScale(SCALA, SCALA);
+            // 以点击的位置（x, y）为重心放大，故需要移动dx，dy的量
+            mMatrix.postTranslate(dx, dy);
+            setImageMatrix(mMatrix);
+
+            // 进来之前的矩阵移动量在其他地方已经操作在mBitmapRectF上了，
+            // 但是image是直接设置matrix进去的，所以要沿用之前的mCurrentMatrix。
+            mMatrix.reset();
+            mMatrix.postScale(SCALA, SCALA);
+            mMatrix.postTranslate(dx, dy);
+            mMatrix.mapRect(mBitmapRectF);
         }
-        matrix.postScale(mCurrentScala, mCurrentScala);
-        mMaxMoveValueX = (w * mCurrentScala - getWidth()) / 2;
-        mMaxMoveValueY = (h * mCurrentScala - getHeight()) / 2;
-
-        // 记录平移钱的可以用的右滑和下滑的位移量
-        float tmpX = mMaxRightMoveValue * mCurrentScala;
-        float tmpY = mMaxDownMoveValue * mCurrentScala;
-
-        mMaxDownMoveValue = 0;
-        mMaxUpMoveValue = mMaxMoveValueY * 2;
-
-        mMaxRightMoveValue = 0;
-        mMaxLeftMoveValue = mMaxMoveValueX * 2;
-
-        float dx ;
-        float dy ;
-
-        if (mCurrentScala == 1) {
-            tmpX = 0;
-            tmpY = y > mMaxUpMoveValue ? mMaxUpMoveValue : y;
-        }
-        dx = tmpX + x * (mCurrentScala - 1);
-        dy = tmpY + y * (mCurrentScala - 1);
-
-        matrix.postTranslate(-dx, -dy);
-
-        mMaxDownMoveValue += dy;
-        mMaxUpMoveValue -= dy;
-        mMaxLeftMoveValue -= dx;
-        mMaxRightMoveValue += dx;
-        setImageMatrix(matrix);
     }
 
 }

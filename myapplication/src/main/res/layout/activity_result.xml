@@ -8,6 +8,13 @@
 
     tools:context="com.moly.hooyee.myapplication.ResultActivity">
 
+    <ImageView
+        android:id="@+id/photo1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:scaleType="matrix"
+        android:src="@mipmap/ic_launcher"/>
+
     <com.moly.hooyee.cutphoto.PhotoHandle
         android:id="@+id/photo"
         android:layout_width="wrap_content"
@@ -16,12 +23,6 @@
         android:layout_gravity="center"
         android:src="@mipmap/ic_launcher" />
 
-    <ImageView
-        android:id="@+id/photo1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:scaleType="matrix"
-        android:src="@mipmap/ic_launcher"/>
 
     <Button
         android:id="@+id/bt"
