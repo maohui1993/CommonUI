@@ -6,6 +6,10 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.moly.hooyee.cutphoto.PhotoHandle;
 
@@ -13,7 +17,7 @@ public class ResultActivity extends Activity {
 
     private PhotoHandle photoView;
     private Bitmap mBitmap;
-
+    Bitmap b;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -26,19 +30,24 @@ public class ResultActivity extends Activity {
         photoView.setImageBitmap(mBitmap);
        // Bitmap bmp = zoomBitmap(measurement);
      //   photoView.render(mBitmap);
-    }
 
-    private Bitmap zoomBitmap(float measurement) {
 
-        int bmpWidth = mBitmap.getWidth();
-        int bmpHeight = mBitmap.getHeight();
 
-        int min = bmpWidth > bmpHeight ? bmpHeight : bmpWidth;
+        Button bt = (Button) findViewById(R.id.bt);
 
-        Matrix matrix = new Matrix();
-        matrix.setScale(measurement/min, measurement/min);
-        Bitmap result = Bitmap.createBitmap(mBitmap, 0, 0, bmpWidth, bmpHeight, matrix, true);
-        return result;
+        bt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                photoView.setDrawingCacheEnabled(true);
+                photoView.buildDrawingCache();
+                b = Bitmap.createBitmap(photoView.getDrawingCache());
+                photoView.setDrawingCacheEnabled(false);
+                ImageView p1 = (ImageView) findViewById(R.id.photo1);
+                p1.setImageBitmap(b);
+                Toast.makeText(ResultActivity.this, "h " + b.getHeight() + ", w " + b.getWidth(), Toast.LENGTH_LONG).show();
+            }
+        });
+
     }
 
 }
