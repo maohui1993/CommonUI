@@ -1,1 +1,1 @@
-include ':content', ':myapplication', ':cutphoto'
+include ':content', ':myapplication', ':PhotoView'

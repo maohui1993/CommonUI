@@ -7,17 +7,19 @@ import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.Toast;
 
+import com.moly.hooyee.cutphoto.CoverView;
 import com.moly.hooyee.cutphoto.PhotoPicker;
 import com.moly.hooyee.cutphoto.PhotoView;
 
 public class ResultActivity extends Activity {
 
     private PhotoView photoView;
+    private CoverView coverView;
     private Bitmap mBitmap;
-    Bitmap b;
+    private Bitmap b;
+    private Bitmap[][] mDstBitmaps;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -28,10 +30,12 @@ public class ResultActivity extends Activity {
         mBitmap = BitmapFactory.decodeFile(picPath);
         photoView = (PhotoView) findViewById(R.id.photo);
         photoView.setImageBitmap(mBitmap);
+        coverView = (CoverView) findViewById(R.id.cover);
 
-        Button bt = (Button) findViewById(R.id.bt);
-
-        bt.setOnClickListener(new View.OnClickListener() {
+        Button bt1 = (Button) findViewById(R.id.bt_photo_cut_1);
+        Button bt2 = (Button) findViewById(R.id.bt_photo_cut_2);
+        Button bt3 = (Button) findViewById(R.id.bt_photo_cut_3);
+        bt1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 photoView.setDrawingCacheEnabled(true);
@@ -39,30 +43,9 @@ public class ResultActivity extends Activity {
                 b = Bitmap.createBitmap(photoView.getDrawingCache());
                 photoView.setDrawingCacheEnabled(false);
 
-                Bitmap[][] bmps = PhotoPicker.cutPhoto(b, 3);
-
-                ImageView p1 = (ImageView) findViewById(R.id.photo1);
-                ImageView p2 = (ImageView) findViewById(R.id.photo2);
-                ImageView p3 = (ImageView) findViewById(R.id.photo3);
-                ImageView p4 = (ImageView) findViewById(R.id.photo4);
-                ImageView p5 = (ImageView) findViewById(R.id.photo5);
-                ImageView p6 = (ImageView) findViewById(R.id.photo6);
-//                ImageView p7 = (ImageView) findViewById(R.id.photo7);
-//                ImageView p8 = (ImageView) findViewById(R.id.photo8);
-//                ImageView p9 = (ImageView) findViewById(R.id.photo9);
-                p1.setImageBitmap(bmps[0][0]);
-                p2.setImageBitmap(bmps[0][1]);
-                p3.setImageBitmap(bmps[0][2]);
-                p4.setImageBitmap(bmps[1][0]);
-                p5.setImageBitmap(bmps[1][1]);
-                p6.setImageBitmap(bmps[1][2]);
-//                p7.setImageBitmap(bmps[2][0]);
-//                p8.setImageBitmap(bmps[2][1]);
-//                p9.setImageBitmap(bmps[2][2]);
-                Toast.makeText(ResultActivity.this, "h " + b.getHeight() + ", w " + b.getWidth(), Toast.LENGTH_LONG).show();
+                mDstBitmaps = PhotoPicker.cutPhoto(b, 1);
             }
         });
-
     }
 
 }

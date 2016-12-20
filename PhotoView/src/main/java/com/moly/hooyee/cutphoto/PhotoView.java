@@ -45,7 +45,6 @@ public class PhotoView extends ImageView implements View.OnTouchListener {
         mMatrix = new Matrix();
         setOnTouchListener(this);
         initType();
-
     }
 
     private void initType() {
@@ -60,7 +59,7 @@ public class PhotoView extends ImageView implements View.OnTouchListener {
             mBitmap = zoomBitmap(mBitmap, getWidth());
             mViewBoundRectF  = new RectF(0, 0, getWidth(), getHeight());
             mBitmapRectF = new RectF(0, 0, mBitmap.getWidth(), mBitmap.getHeight());
-            init(mBitmap);
+            init();
         }
     }
 
@@ -70,12 +69,12 @@ public class PhotoView extends ImageView implements View.OnTouchListener {
         mBitmap = bm;
     }
 
-    public void init(Bitmap bmp) {
+    public void init() {
         // bitmap修改符合view宽高之后重新设置为图片
         setImageBitmap(mBitmap);
 
-        float width = bmp.getWidth();
-        float height = bmp.getHeight();
+        float width = mBitmap.getWidth();
+        float height = mBitmap.getHeight();
 
         float dx = -(width - getWidth()) / 2;
         float dy = -(height - getHeight()) / 2;
@@ -145,6 +144,7 @@ public class PhotoView extends ImageView implements View.OnTouchListener {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         drawBorder(canvas);
+     //   drawBash(canvas);
     }
 
     /**
@@ -165,7 +165,6 @@ public class PhotoView extends ImageView implements View.OnTouchListener {
         p.setColor(Color.BLUE);
         p.setStrokeWidth(6);
         p.setStyle(Paint.Style.STROKE);//设置为空心
-
         canvas.drawPath(path, p);
     }
 
