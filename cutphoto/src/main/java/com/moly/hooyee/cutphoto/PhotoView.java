@@ -19,7 +19,7 @@ import android.widget.Toast;
  * mail: hooyee01_moly@foxmail.com
  */
 
-public class PhotoHandle extends ImageView implements View.OnTouchListener {
+public class PhotoView extends ImageView implements View.OnTouchListener {
 
     static final int DOUBLE_CLICK_TIME_SPACE = 300; // 双击时间间隔
 
@@ -39,7 +39,7 @@ public class PhotoHandle extends ImageView implements View.OnTouchListener {
     private float dX;
     private float dY;
 
-    public PhotoHandle(Context context, AttributeSet attrs) {
+    public PhotoView(Context context, AttributeSet attrs) {
         super(context, attrs);
         mCurrentMatrix = new Matrix();
         mMatrix = new Matrix();
@@ -190,6 +190,7 @@ public class PhotoHandle extends ImageView implements View.OnTouchListener {
 
     private void touchUp(MotionEvent event) {
         mMatrix.reset();
+        // 一次滑动屏幕会多次触发move事件，而实际移动距离为最后一次事件获得的dX,dY
         mMatrix.postTranslate(dX, dY);
         mMatrix.mapRect(mBitmapRectF);
         dX = 0;
@@ -203,6 +204,7 @@ public class PhotoHandle extends ImageView implements View.OnTouchListener {
         dY = event.getY() - mStartY;
         dX = event.getX() - mStartX;
 
+        // check up the bound
         if (mBitmapRectF.left + dX > mViewBoundRectF.left) {
             dX = mViewBoundRectF.left - mBitmapRectF.left;
         }
@@ -233,34 +235,40 @@ public class PhotoHandle extends ImageView implements View.OnTouchListener {
         mLastTime = event.getEventTime();
     }
 
+    // 当前放大次数
     private int mCurrentCount;
     // 每次执行放大操作时，放大的比例
-    public static float SCALA = 1.5f;
+    public static final float SCALE = 1.5f;
+    public static final int MAX_COUNT = 2;
 
     private void changeSize(float x, float y) {
         Toast.makeText(getContext(), "down", Toast.LENGTH_SHORT).show();
         mMatrix.set(mCurrentMatrix);
         mCurrentCount++;
-        if (mCurrentCount == 3) {
-            mCurrentCount = 0;
-            setImageMatrix(mOriginalMatrix);
-            mBitmapRectF.set(mOriginalBitmapRectF);
+        if (mCurrentCount > MAX_COUNT) {
+            reset();
         } else {
-            float dx = - x * (SCALA - 1);
-            float dy = - y * (SCALA - 1);
+            float dx = - x * (SCALE - 1);
+            float dy = - y * (SCALE - 1);
 
-            mMatrix.postScale(SCALA, SCALA);
+            mMatrix.postScale(SCALE, SCALE);
             // 以点击的位置（x, y）为重心放大，故需要移动dx，dy的量
             mMatrix.postTranslate(dx, dy);
             setImageMatrix(mMatrix);
 
-            // 进来之前的矩阵移动量在其他地方已经操作在mBitmapRectF上了，
+            // 进来之前的矩阵移动量在其他地方(touchMove)已经操作在mBitmapRectF上了，
             // 但是image是直接设置matrix进去的，所以要沿用之前的mCurrentMatrix。
             mMatrix.reset();
-            mMatrix.postScale(SCALA, SCALA);
+            mMatrix.postScale(SCALE, SCALE);
             mMatrix.postTranslate(dx, dy);
             mMatrix.mapRect(mBitmapRectF);
         }
+    }
+
+    private void reset() {
+        mCurrentCount = 0;
+        setImageMatrix(mOriginalMatrix);
+        mBitmapRectF.set(mOriginalBitmapRectF);
     }
 
 }

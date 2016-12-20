@@ -2,19 +2,11 @@ package com.moly.hooyee.myapplication;
 
 import android.content.Intent;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
 import android.view.Window;
-import android.widget.Toast;
-
-import com.moly.hooyee.common.ui.ContentView;
-import com.moly.hooyee.cutphoto.PhotoHandle;
 
 public class MainActivity extends AppCompatActivity {
 

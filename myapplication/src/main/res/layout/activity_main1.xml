@@ -9,7 +9,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
-    <com.moly.hooyee.cutphoto.PhotoHandle
+    <com.moly.hooyee.cutphoto.PhotoView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="300dp"
